@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Congo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#13201A">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --bg:#13201A; --panel:#1B2E24; --line:#2C4537; --text:#E9EFE6; --muted:#8FA595;
+  --pip:#2A3F33; --paul:#E0A63A; --martin:#5DB3C4; --ink:#14100A;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#EEF2EA; --panel:#FFFFFF; --line:#C9D6CC; --text:#16261D; --muted:#5D7365;
+    --pip:#DDE6DF; --paul:#C08419; --martin:#2E8FA3; --ink:#FFFFFF;
+  }
+}
+:root[data-theme="light"]{
+  --bg:#EEF2EA; --panel:#FFFFFF; --line:#C9D6CC; --text:#16261D; --muted:#5D7365;
+  --pip:#DDE6DF; --paul:#C08419; --martin:#2E8FA3; --ink:#FFFFFF;
+}
+:root[data-theme="dark"]{
+  --bg:#13201A; --panel:#1B2E24; --line:#2C4537; --text:#E9EFE6; --muted:#8FA595;
+  --pip:#2A3F33; --paul:#E0A63A; --martin:#5DB3C4; --ink:#14100A;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{margin:0;height:100%}
+body{
+  background:var(--bg); color:var(--text);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+main{max-width:480px;margin:0 auto;padding:20px 18px 28px;display:flex;flex-direction:column;gap:18px;min-height:100%}
+h1{margin:0;font-size:2.4rem;font-weight:800;letter-spacing:-0.02em;line-height:1}
+
+.board{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.score{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.score .name{font-weight:800;font-size:1.1rem}
+.score .rounds{font-size:3rem;font-weight:800;line-height:1;margin-top:6px;font-variant-numeric:tabular-nums}
+.score .sub{color:var(--muted);font-size:.9rem;margin-top:4px}
+.score .sub b{color:var(--text);font-weight:600;font-variant-numeric:tabular-nums}
+
+.roundinfo{color:var(--muted);font-size:.95rem;margin:4px 0 -6px}
+
+.player{
+  width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer;
+  background:var(--panel);border:2px solid var(--line);border-radius:18px;
+  padding:16px 16px 18px;display:flex;flex-direction:column;gap:12px;
+  transition:transform .08s ease,border-color .15s ease;
+}
+.player:active{transform:scale(.98)}
+.player:focus-visible{outline:3px solid var(--text);outline-offset:2px}
+.player .top{display:flex;justify-content:space-between;align-items:baseline}
+.player .pname{font-size:1.6rem;font-weight:800}
+.player .count{font-size:1.1rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.player .count b{color:var(--text);font-size:1.5rem}
+.pips{display:grid;grid-template-columns:repeat(10,1fr);gap:6px}
+.pip{aspect-ratio:1;border-radius:50%;background:var(--pip)}
+.player .hint{font-size:.85rem;color:var(--muted)}
+.p-Paul .pname{color:var(--paul)} .p-Paul .pip.on{background:var(--paul)}
+.p-Martin .pname{color:var(--martin)} .p-Martin .pip.on{background:var(--martin)}
+.p-Paul.flash{border-color:var(--paul)} .p-Martin.flash{border-color:var(--martin)}
+
+.status{min-height:1.4em;font-weight:600;text-align:center}
+.status.big{font-size:1.25rem;animation:pop .5s ease}
+@keyframes pop{0%{transform:scale(.85);opacity:0}100%{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){.status.big{animation:none}.player{transition:none}}
+
+.bar{display:flex;justify-content:space-between;gap:10px;margin-top:auto}
+.bar button{
+  font:inherit;font-size:.95rem;color:var(--text);background:transparent;
+  border:1px solid var(--line);border-radius:999px;padding:10px 16px;cursor:pointer;
+}
+.bar button:focus-visible{outline:3px solid var(--text);outline-offset:2px}
+.bar #reset{position:relative;overflow:hidden;font-size:.8rem;color:var(--muted);padding:8px 12px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
+.bar #reset .fill{position:absolute;inset:0;width:0;background:#C9573A;opacity:.35;pointer-events:none}
+.bar #reset.holding{color:#E2785C;border-color:#C9573A}
+.bar #reset.holding .fill{width:100%;transition:width 2.5s linear}
+.bar #reset span{position:relative}
+.sync{color:var(--muted);font-size:.8rem;text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <h1>Congo</h1>
+
+  <section class="board" aria-label="Totals">
+    <div class="score"><div class="name" style="color:var(--paul)">Paul</div>
+      <div class="rounds" id="r-Paul">0</div>
+      <div class="sub">rounds · <b id="g-Paul">0</b> games</div></div>
+    <div class="score"><div class="name" style="color:var(--martin)">Martin</div>
+      <div class="rounds" id="r-Martin">0</div>
+      <div class="sub">rounds · <b id="g-Martin">0</b> games</div></div>
+  </section>
+
+  <div class="roundinfo" id="roundinfo">Round 1 · first to 10</div>
+
+  <button class="player p-Paul" id="btn-Paul" aria-label="Paul won this game">
+    <div class="top"><span class="pname">Paul</span><span class="count"><b id="c-Paul">0</b> / 10</span></div>
+    <div class="pips" id="pips-Paul"></div>
+    <div class="hint">Tap if Paul won the game</div>
+  </button>
+
+  <button class="player p-Martin" id="btn-Martin" aria-label="Martin won this game">
+    <div class="top"><span class="pname">Martin</span><span class="count"><b id="c-Martin">0</b> / 10</span></div>
+    <div class="pips" id="pips-Martin"></div>
+    <div class="hint">Tap if Martin won the game</div>
+  </button>
+
+  <div class="status" id="status" aria-live="polite"></div>
+
+  <div class="bar">
+    <button id="undo">Undo last game</button>
+    <button id="reset"><i class="fill"></i><span id="reset-label">Hold to start over</span></button>
+  </div>
+  <div class="sync" id="sync"></div>
+</main>
+
+<script>
+(function(){
+  const PLAYERS = ["Paul","Martin"];
+  const CODE = {Paul:"P", Martin:"M"};
+  const NAME = {P:"Paul", M:"Martin"};
+  const TARGET = 10;
+  const LS_KEY = "congo-offline-history";
+
+  let history = "";        // one letter per game: "PMMP..."
+
+  // pips
+  PLAYERS.forEach(p=>{
+    const box = document.getElementById("pips-"+p);
+    for(let i=0;i<TARGET;i++){ const d=document.createElement("span"); d.className="pip"; box.appendChild(d); }
+  });
+
+  function tally(h){
+    const games={Paul:0,Martin:0}, rounds={Paul:0,Martin:0};
+    let cur={Paul:0,Martin:0}, roundsDone=0;
+    for(const ch of h){
+      const w = NAME[ch]; if(!w) continue;
+      games[w]++; cur[w]++;
+      if(cur[w]>=TARGET){ rounds[w]++; roundsDone++; cur={Paul:0,Martin:0}; }
+    }
+    return {games, rounds, cur, roundsDone};
+  }
+
+  function render(){
+    const t = tally(history);
+    PLAYERS.forEach(p=>{
+      document.getElementById("r-"+p).textContent = t.rounds[p];
+      document.getElementById("g-"+p).textContent = t.games[p];
+      document.getElementById("c-"+p).textContent = t.cur[p];
+      [...document.getElementById("pips-"+p).children].forEach((d,i)=>d.classList.toggle("on", i < t.cur[p]));
+    });
+    document.getElementById("roundinfo").textContent = "Round "+(t.roundsDone+1)+" · first to "+TARGET;
+  }
+
+  function setStatus(text, big){
+    const s = document.getElementById("status");
+    s.classList.remove("big"); void s.offsetWidth;
+    s.textContent = text;
+    if(big) s.classList.add("big");
+  }
+
+  function saveLocal(){ try{ localStorage.setItem(LS_KEY, history); }catch(e){} }
+  function loadLocal(){ try{ return localStorage.getItem(LS_KEY) || ""; }catch(e){ return ""; } }
+
+  function persist(){ saveLocal(); }
+
+  function addWin(p){
+    const before = tally(history).rounds[p];
+    history += CODE[p];
+    const t = tally(history);
+    render(); persist();
+    const btn = document.getElementById("btn-"+p);
+    btn.classList.add("flash"); setTimeout(()=>btn.classList.remove("flash"), 250);
+    if(t.rounds[p] > before){
+      setStatus(p+" wins round "+t.roundsDone+"!", true);
+      if(navigator.vibrate) try{ navigator.vibrate([60,40,60]); }catch(e){}
+    } else {
+      setStatus("Game to "+p+".");
+      if(navigator.vibrate) try{ navigator.vibrate(20); }catch(e){}
+    }
+  }
+
+  document.getElementById("btn-Paul").addEventListener("click", ()=>addWin("Paul"));
+  document.getElementById("btn-Martin").addEventListener("click", ()=>addWin("Martin"));
+
+  document.getElementById("undo").addEventListener("click", ()=>{
+    if(!history){
+      let backup = "";
+      try{ backup = localStorage.getItem(LS_KEY+"-backup") || ""; }catch(e){}
+      if(backup){
+        history = backup;
+        try{ localStorage.removeItem(LS_KEY+"-backup"); }catch(e){}
+        render(); persist();
+        setStatus("All scores restored.");
+      } else setStatus("Nothing to undo.");
+      return;
+    }
+    const last = NAME[history.slice(-1)];
+    history = history.slice(0,-1);
+    render(); persist();
+    setStatus("Removed last game ("+last+").");
+  });
+
+  // press and hold 2.5 s to clear; letting go early cancels
+  let holdTimer = null;
+  const resetBtn = document.getElementById("reset");
+  const resetLabel = document.getElementById("reset-label");
+  function cancelHold(){
+    if(holdTimer){ clearTimeout(holdTimer); holdTimer=null; }
+    resetBtn.classList.remove("holding");
+    resetLabel.textContent = "Hold to start over";
+  }
+  resetBtn.addEventListener("pointerdown", e=>{
+    if(!history) { setStatus("Nothing to clear."); return; }
+    e.preventDefault();
+    resetBtn.classList.add("holding");
+    resetLabel.textContent = "Keep holding…";
+    holdTimer = setTimeout(()=>{
+      holdTimer = null;
+      try{ localStorage.setItem(LS_KEY+"-backup", history); }catch(e){}
+      history = "";
+      render(); persist();
+      cancelHold();
+      setStatus("Everything cleared. Tap Undo to bring it back.", true);
+    }, 2500);
+  });
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>resetBtn.addEventListener(ev, cancelHold));
+  resetBtn.addEventListener("contextmenu", e=>e.preventDefault());
+  resetBtn.addEventListener("click", e=>{ e.preventDefault(); if(!holdTimer && history) setStatus("Press and hold to start over."); });
+
+  // local only: check that this browser can actually keep the scores
+  let storageOK = true;
+  try{ localStorage.setItem("congo-test","1"); storageOK = localStorage.getItem("congo-test")==="1"; localStorage.removeItem("congo-test"); }
+  catch(e){ storageOK = false; }
+  history = loadLocal();
+  render();
+  document.getElementById("sync").textContent = storageOK
+    ? "Offline version – saved on this phone"
+    : "Warning: this browser can't save scores. Open it in Chrome instead.";
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", ()=>{ navigator.serviceWorker.register("sw.js").catch(()=>{}); });
+  }
+})();
+</script>
+</body>
+</html>
